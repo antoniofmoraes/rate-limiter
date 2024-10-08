@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -9,6 +10,8 @@ import (
 type rateLimiterRedisRepository struct {
 	client *redis.Client
 }
+
+const prefix = "rate_limiter"
 
 func NewRateLimiterRedisRepository(client *redis.Client) *rateLimiterRedisRepository {
 	return &rateLimiterRedisRepository{
@@ -21,7 +24,9 @@ func (r *rateLimiterRedisRepository) Increment(key string) (int32, error) {
 
 	pipe := r.client.Pipeline()
 
-	count := pipe.Incr(ctx, key)
+	finalKey := fmt.Sprintf("%s:%s", prefix, key)
+
+	count := pipe.Incr(ctx, finalKey)
 	if count.Err() != nil {
 		return 0, count.Err()
 	}
