@@ -6,17 +6,17 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type RateLimiterRedisRepository struct {
+type rateLimiterRedisRepository struct {
 	client *redis.Client
 }
 
-func NewRateLimiterRedisRepository(client *redis.Client) *RateLimiterRedisRepository {
-	return &RateLimiterRedisRepository{
+func NewRateLimiterRedisRepository(client *redis.Client) *rateLimiterRedisRepository {
+	return &rateLimiterRedisRepository{
 		client,
 	}
 }
 
-func (r *RateLimiterRedisRepository) Increment(key string) (int32, error) {
+func (r *rateLimiterRedisRepository) Increment(key string) (int32, error) {
 	ctx := context.Background()
 
 	pipe := r.client.Pipeline()
