@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -21,10 +22,11 @@ func NewRateLimiterRedisRepository(client *redis.Client) *rateLimiterRedisReposi
 
 func (r *rateLimiterRedisRepository) Increment(key string) (int32, error) {
 	ctx := context.Background()
+	defer ctx.Done()
 
 	pipe := r.client.Pipeline()
 
-	finalKey := fmt.Sprintf("%s:%s", prefix, key)
+	finalKey := formatKey(key)
 
 	count := pipe.Incr(ctx, finalKey)
 	if count.Err() != nil {
@@ -37,4 +39,17 @@ func (r *rateLimiterRedisRepository) Increment(key string) (int32, error) {
 	}
 
 	return int32(count.Val()), nil
+}
+
+func (r *rateLimiterRedisRepository) Expire(key string, duration time.Duration) bool {
+	ctx := context.Background()
+	defer ctx.Done()
+
+	res := r.client.Expire(ctx, formatKey(key), duration)
+
+	return res.Val()
+}
+
+func formatKey(key string) string {
+	return fmt.Sprintf("%s:%s", prefix, key)
 }
