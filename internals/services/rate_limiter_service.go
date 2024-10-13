@@ -1,20 +1,21 @@
 package services
 
 import (
+	"errors"
 	"time"
 
 	"github.com/antoniofmoraes/rate-limiter/internals/infra/repositories"
 )
 
-type rateLimiterService struct {
+type RateLimiterService struct {
 	r                 repositories.RateLimiterRepositoryInterface
 	timeoutDuration   time.Duration
-	ipRequestLimit    int
-	tokenRequestLimit int
+	ipRequestLimit    int32
+	tokenRequestLimit int32
 }
 
-func NewRateLimiterService(repository repositories.RateLimiterRepositoryInterface, timeoutDuration time.Duration, ipRequestLimit int, tokenRequestLimit int) *rateLimiterService {
-	return &rateLimiterService{
+func NewRateLimiterService(repository repositories.RateLimiterRepositoryInterface, timeoutDuration time.Duration, ipRequestLimit int32, tokenRequestLimit int32) *RateLimiterService {
+	return &RateLimiterService{
 		repository,
 		timeoutDuration,
 		ipRequestLimit,
@@ -24,16 +25,10 @@ func NewRateLimiterService(repository repositories.RateLimiterRepositoryInterfac
 
 // ### TODO ###
 // make it transactional
-func (s *rateLimiterService) IsAllowed(identifier string, isToken bool) (bool, error) {
+func (s *RateLimiterService) IsAllowed(identifier string, isToken bool) (bool, error) {
 	result, err := s.r.Increment(identifier)
 	if err != nil {
-		return false, nil
-	}
-
-	if result == 1 {
-		s.r.Expire(identifier, time.Second)
-	} else if result == 6 {
-		s.r.Expire(identifier, s.timeoutDuration)
+		return false, errors.New("unexpected error while validating access rate")
 	}
 
 	limit := s.ipRequestLimit
@@ -41,5 +36,18 @@ func (s *rateLimiterService) IsAllowed(identifier string, isToken bool) (bool, e
 		limit = s.tokenRequestLimit
 	}
 
-	return result > int32(limit), nil
+	if result > limit {
+		return false, errors.New("you have reached the maximum number of requests or actions allowed within a certain time frame")
+	}
+
+	if result == limit {
+		s.r.Expire(identifier, s.timeoutDuration)
+		return false, errors.New("you have reached the maximum number of requests or actions allowed within a certain time frame")
+	}
+
+	if result == 1 {
+		s.r.Expire(identifier, 1)
+	}
+
+	return true, nil
 }
