@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
+	"github.com/antoniofmoraes/rate-limiter/configs"
 	"github.com/antoniofmoraes/rate-limiter/internals/infra/repositories"
 	"github.com/antoniofmoraes/rate-limiter/internals/infra/webserver"
 	"github.com/antoniofmoraes/rate-limiter/internals/services"
@@ -10,19 +12,25 @@ import (
 )
 
 func main() {
-	// ### TODO ###
-	// Make it .env configured
+	configs, err := configs.LoadConfig(".", ".env")
+	if err != nil {
+		panic(err)
+	}
+
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
+		Addr:     fmt.Sprintf("%s:%s", configs.DBHost, configs.DBPort),
+		Password: configs.DBPassword,
 		DB:       0, // use default DB
 	})
 
 	rateLimiterRepository := repositories.NewRateLimiterRedisRepository(redisClient)
 
-	// ### TODO ###
-	// Make it .env configured
-	rateLimiterService := services.NewRateLimiterService(rateLimiterRepository, time.Second*10, 5, 7)
+	rateLimiterService := services.NewRateLimiterService(
+		rateLimiterRepository,
+		time.Duration(configs.RateLimiterTimeout)*time.Second,
+		configs.RateLimiterIpLimit,
+		configs.RateLimiterTokenLimit,
+	)
 
 	httpServer := webserver.NewHttpServer(rateLimiterService)
 	httpServer.Start()

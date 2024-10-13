@@ -23,6 +23,8 @@ func NewRateLimiterService(repository repositories.RateLimiterRepositoryInterfac
 	}
 }
 
+// ## TODO ##
+// review the logic
 // ### TODO ###
 // make it transactional
 func (s *RateLimiterService) IsAllowed(identifier string, isToken bool) (bool, error) {

@@ -7,6 +7,8 @@ import (
 	"github.com/antoniofmoraes/rate-limiter/internals/services"
 )
 
+// ## TODO ##
+// review the logic
 func RateLimiterMiddleware(s *services.RateLimiterService, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var allowed bool
