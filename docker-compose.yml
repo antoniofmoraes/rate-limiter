@@ -8,6 +8,9 @@ services:
       - redis_data:/data
     restart: always
 
+    # TODO
+    # Include API in the compose
+
 volumes:
   redis_data:
     driver: local

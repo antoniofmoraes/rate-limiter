@@ -7,6 +7,11 @@ import (
 	"github.com/antoniofmoraes/rate-limiter/internals/infra/repositories"
 )
 
+const (
+	unexpectedError      = "unexpected error while validating access rate"
+	maximumRequestsError = "you have reached the maximum number of requests or actions allowed within a certain time frame"
+)
+
 type RateLimiterService struct {
 	r                 repositories.RateLimiterRepositoryInterface
 	timeoutDuration   time.Duration
@@ -23,14 +28,10 @@ func NewRateLimiterService(repository repositories.RateLimiterRepositoryInterfac
 	}
 }
 
-// ## TODO ##
-// review the logic
-// ### TODO ###
-// make it transactional
 func (s *RateLimiterService) IsAllowed(identifier string, isToken bool) (bool, error) {
 	result, err := s.r.Increment(identifier)
 	if err != nil {
-		return false, errors.New("unexpected error while validating access rate")
+		return false, errors.New(unexpectedError)
 	}
 
 	limit := s.ipRequestLimit
@@ -38,13 +39,13 @@ func (s *RateLimiterService) IsAllowed(identifier string, isToken bool) (bool, e
 		limit = s.tokenRequestLimit
 	}
 
-	if result > limit {
-		return false, errors.New("you have reached the maximum number of requests or actions allowed within a certain time frame")
+	if result > limit+1 {
+		return false, errors.New(maximumRequestsError)
 	}
 
-	if result == limit {
+	if result == limit+1 {
 		s.r.Expire(identifier, s.timeoutDuration)
-		return false, errors.New("you have reached the maximum number of requests or actions allowed within a certain time frame")
+		return false, errors.New(maximumRequestsError)
 	}
 
 	if result == 1 {
