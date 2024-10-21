@@ -26,7 +26,7 @@ func (s *httpServer) Start() {
 		fmt.Fprintf(w, "Hello, world!")
 	})
 
-	mux.Handle("/", middlewares.RateLimiterMiddleware(s.rateLimiterService, helloHandler))
+	mux.Handle("/api", middlewares.RateLimiterMiddleware(s.rateLimiterService, helloHandler))
 
 	err := http.ListenAndServe(":8080", mux)
 
